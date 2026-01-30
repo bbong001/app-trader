@@ -60,7 +60,7 @@ export default function ChatWindow() {
     // Use environment variable for socket URL, fallback to localhost for development
     const socketUrl = import.meta.env.PUBLIC_SOCKET_URL || 
       (process.env.NODE_ENV === 'production' 
-        ? 'https://your-socket-server.railway.app' 
+        ? 'https://app-trader.railway.internal' 
         : 'http://localhost:3000');
     
     const newSocket = io(socketUrl, {

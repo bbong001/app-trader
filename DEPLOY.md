@@ -101,7 +101,7 @@ export default defineConfig({
 
 ```
 DATABASE_URL=your_database_url
-PUBLIC_SOCKET_URL=https://your-socket-server.railway.app
+PUBLIC_SOCKET_URL=https://app-trader.railway.internal
 NODE_ENV=production
 ```
 
@@ -168,14 +168,14 @@ Sau khi deploy socket server, cần cập nhật Environment Variables:
 
 Thêm vào Environment Variables:
 ```
-PUBLIC_SOCKET_URL=https://your-socket-server.railway.app
+PUBLIC_SOCKET_URL=https://app-trader.railway.internal
 ```
 
 ### CMS (Netlify)
 
 Thêm vào Environment Variables:
 ```
-PUBLIC_SOCKET_URL=https://your-socket-server.railway.app
+PUBLIC_SOCKET_URL=https://app-trader.railway.internal
 ```
 
 ### Socket Server (Railway/Render)
