@@ -14,6 +14,8 @@ interface Props {
   error?: FieldError;
   buttonText: string;
   onClick: () => void;
+  isLoading?: boolean;
+  disabled?: boolean;
 }
 
 export default function InputFieldWithButton({
@@ -24,6 +26,8 @@ export default function InputFieldWithButton({
   error,
   buttonText,
   onClick,
+  isLoading = false,
+  disabled = false,
 }: Props) {
   return (
     <div className="mb-4">
@@ -40,9 +44,14 @@ export default function InputFieldWithButton({
         <button
           type="button"
           onClick={onClick}
-          className="bg-green-500 px-4 text-gray-900 font-medium rounded-r-lg"
+          disabled={disabled || isLoading}
+          className={`px-4 text-gray-900 font-medium rounded-r-lg transition ${
+            disabled || isLoading
+              ? 'bg-gray-600 cursor-not-allowed'
+              : 'bg-green-500 hover:bg-green-600'
+          }`}
         >
-          {buttonText}
+          {isLoading ? '...' : buttonText}
         </button>
       </div>
       {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}

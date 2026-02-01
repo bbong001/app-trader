@@ -14,11 +14,11 @@ export async function POST(context: APIContext): Promise<Response> {
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    const { email, password } = body as { email?: string; password?: string };
+    const { email, password, code } = body as { email?: string; password?: string; code?: string };
 
-    if (!email || !password) {
+    if (!email || !password || !code) {
       return new Response(
-        JSON.stringify({ error: 'Email and password are required' }),
+        JSON.stringify({ error: 'Email, password, and verification code are required' }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -30,6 +30,27 @@ export async function POST(context: APIContext): Promise<Response> {
       where: { email },
       select: { id: true },
     });
+
+    // Verify email code (latest non-expired)
+    const verification = await (prisma as any).verificationCode.findFirst({
+      where: {
+        email,
+        code,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+
+    if (!verification) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired verification code' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
 
     if (existing) {
       return new Response(

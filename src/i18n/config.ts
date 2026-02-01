@@ -416,6 +416,9 @@ const resources = {
           invalidCredentials: 'Incorrect account or password.',
           errorModalButton: 'OK',
           networkError: 'Network error. Please check your connection and try again.',
+          successModalTitle: 'Code sent',
+          successModalMessage: 'Verification code has been sent to your email. Please check your inbox.',
+          successModalButton: 'OK',
         },
       },
       walletConnect: {
@@ -911,6 +914,9 @@ const resources = {
           invalidCredentials: 'Tài khoản hoặc mật khẩu không đúng.',
           errorModalButton: 'Đồng ý',
           networkError: 'Lỗi mạng. Vui lòng kiểm tra kết nối và thử lại.',
+          successModalTitle: 'Code đã gửi tới email của bạn',
+          successModalMessage: 'Vui lòng kiểm tra email của bạn để xác minh tài khoản.',
+          successModalButton: 'Đồng ý',
         },
       },
       walletConnect: {
@@ -1404,6 +1410,9 @@ const resources = {
           invalidCredentials: 'アカウント名またはパスワードが正しくありません。',
           errorModalButton: 'OK',
           networkError: 'ネットワークエラーです。接続を確認して再試行してください。',
+          successModalTitle: 'コードが送信されました',
+          successModalMessage: 'コードが送信されました。メールを確認してください。',
+          successModalButton: 'OK',
         },
       },
       walletConnect: {

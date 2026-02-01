@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import InputField from './InputField';
 import CheckboxAndLink from './CheckboxAndLink';
 import ActionButton from './ActionButton';
+import Modal from '../shared/Modal';
 import { useMemo, useState } from 'react';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 
@@ -148,29 +149,14 @@ export default function LoginForm() {
           onClick={handleCreateAccount}
         />
       </div>
-      {showErrorModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/50 animate-fade-in"
-            onClick={() => setShowErrorModal(false)}
-          />
-          <div className="relative z-10 mx-8 max-w-sm w-full rounded-2xl bg-[#1f252b] px-6 py-5 shadow-xl border border-white/10 animate-slide-up">
-            <div className="text-white font-semibold text-base mb-2 text-center">
-              {t('login.form.errorModalTitle')}
-            </div>
-            <div className="text-gray-300 text-sm mb-5 text-center">
-              {submitError || t('login.form.invalidCredentials')}
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowErrorModal(false)}
-              className="mx-auto flex items-center justify-center px-6 py-2.5 rounded-full bg-emerald-500 text-white text-sm font-medium shadow-[0_0_15px_rgba(16,185,129,0.7)] active:translate-y-[1px] transition"
-            >
-              {t('login.form.errorModalButton')}
-            </button>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={t('login.form.errorModalTitle')}
+        message={submitError || t('login.form.invalidCredentials')}
+        buttonText={t('login.form.errorModalButton')}
+        variant="error"
+      />
     </form>
   );
 }
