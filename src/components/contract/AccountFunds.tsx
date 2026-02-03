@@ -101,11 +101,6 @@ export default function AccountFunds({
 
     // Settle immediately on mount and when price/symbol changes
     settleExpiredPositions();
-
-    // Set up interval to check and settle every 5 seconds
-    const interval = setInterval(settleExpiredPositions, 10000);
-
-    return () => clearInterval(interval);
   }, [token, currentPrice, symbol]);
 
   useEffect(() => {

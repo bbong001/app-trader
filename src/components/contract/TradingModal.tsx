@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 import { useAuthStore } from '../../stores/authStore';
+import OrderCountdownModal from './OrderCountdownModal';
 
 interface TradingModalProps {
   open: boolean;
@@ -13,6 +14,17 @@ interface TradingModalProps {
 interface DurationOption {
   seconds: number;
   profitability: number;
+}
+
+interface PendingOrderSummary {
+  symbol: string;
+  side: 'BUY_UP' | 'BUY_DOWN';
+  amount: number;
+  entryPrice: number;
+  duration: number;
+  profitability: number;
+  expectedProfit: number;
+  expectedPayout: number;
 }
 
 const DURATION_OPTIONS: DurationOption[] = [
@@ -39,6 +51,10 @@ export default function TradingModal({
   const [tradingModel, setTradingModel] = useState<'USDT' | 'USDC'>('USDT');
   const [quantity, setQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pendingOrder, setPendingOrder] = useState<PendingOrderSummary | null>(null);
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+  const [isCountingDown, setIsCountingDown] = useState(false);
   const { t } = useAppTranslation();
   const token = useAuthStore((state) => state.token);
 
@@ -63,11 +79,13 @@ export default function TradingModal({
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      // Convert symbol from "BTC/USDT" to "BTCUSDT"
+      setIsSubmitting(true);
+      setSubmitError(null);
+
+      // Convert symbol from "BTC/USDT" -> "BTCUSDT"
       const apiSymbol = symbol.replace('/', '');
+      const apiSide: 'BUY_UP' | 'BUY_DOWN' = side === 'buy-up' ? 'BUY_UP' : 'BUY_DOWN';
 
       const response = await fetch('/api/contract/position', {
         method: 'POST',
@@ -77,7 +95,7 @@ export default function TradingModal({
         },
         body: JSON.stringify({
           symbol: apiSymbol,
-          side: side === 'buy-up' ? 'BUY_UP' : 'BUY_DOWN',
+          side: apiSide,
           amount,
           duration: selectedDuration,
           currentPrice,
@@ -88,31 +106,64 @@ export default function TradingModal({
       const result = await response.json();
 
       if (!response.ok) {
-        alert(result.error || 'Failed to create position');
-        setIsSubmitting(false);
+        setSubmitError(result.error || 'Failed to create position');
         return;
       }
 
-      // Success
-      alert(
-        t('contract.tradingModal.submitted', {
-          side: side === 'buy-up' ? t('contract.tradingModal.buy') : t('contract.tradingModal.sell'),
-        })
-      );
+      // Lệnh đã tạo thành công -> lưu lại thông tin, countdown sẽ chạy trong useEffect
+      const position = result.position;
+      if (position) {
+        setPendingOrder({
+          symbol: position.symbol,
+          side: position.side,
+          amount: position.amount,
+          entryPrice: position.entryPrice,
+          duration: position.duration,
+          profitability: position.profitability,
+          expectedProfit: position.expectedProfit,
+          expectedPayout: position.expectedPayout,
+        });
+      }
 
-      // Reset form
+      // Reset input số lượng để lần sau đặt mới
       setQuantity('');
-      onClose();
     } catch (error) {
       console.error('Submit position error:', error);
-      alert('Network error. Please try again.');
+      setSubmitError('Network error. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!open) return null;
+  // Khi có pendingOrder mới, bắt đầu đếm ngược rồi tự đóng popup/modal
+  useEffect(() => {
+    if (!pendingOrder) return;
 
+    // Khởi tạo countdown mỗi khi có lệnh chờ mới
+    setCountdownSeconds(pendingOrder.duration);
+    setIsCountingDown(true);
+
+    const timerId = window.setInterval(() => {
+      setCountdownSeconds((prev) => {
+        if (prev === null) return prev;
+        if (prev <= 1) {
+          // Kết thúc countdown
+          window.clearInterval(timerId);
+          setIsCountingDown(false);
+          setPendingOrder(null);
+          onClose();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [pendingOrder]);
+
+  if (!open) return null;
   return (
     <div className="fixed inset-0 z-[9999]">
       {/* Dimmed background */}
@@ -356,10 +407,10 @@ export default function TradingModal({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!isAmountValid || isSubmitting}
+            disabled={!isAmountValid || isSubmitting || isCountingDown}
             className={`w-full text-gray-900 font-semibold py-4 rounded-lg transition ${
               side === 'buy-up' ? 'bg-emerald-400' : 'bg-red-400'
-            } ${!isAmountValid || isSubmitting ? 'opacity-60 pointer-events-none' : ''}`}
+            } ${!isAmountValid || isSubmitting || isCountingDown ? 'opacity-60 pointer-events-none' : ''}`}
           >
             {isSubmitting
               ? 'Submitting...'
@@ -367,8 +418,33 @@ export default function TradingModal({
               ? t('contract.tradingModal.submitBuy')
               : t('contract.tradingModal.submitSell')}
           </button>
+
+          {/* Inline error message */}
+          {submitError && (
+            <div className="mt-3 text-sm text-red-400 text-center">
+              {submitError}
+            </div>
+          )}
         </div>
       </div>
+
+      {pendingOrder && countdownSeconds !== null && isCountingDown && (
+        <OrderCountdownModal
+          symbol={pendingOrder.symbol}
+          side={pendingOrder.side}
+          amount={pendingOrder.amount}
+          entryPrice={pendingOrder.entryPrice}
+          duration={pendingOrder.duration}
+          profitability={pendingOrder.profitability}
+          expectedPayout={pendingOrder.expectedPayout}
+          countdownSeconds={countdownSeconds}
+          onClose={() => {
+            setPendingOrder(null);
+            setIsCountingDown(false);
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 }
