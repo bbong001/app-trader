@@ -24,13 +24,16 @@ interface TransferRecord {
   createdAt: string;
 }
 
-const FROM_LABEL = 'Coins Account';
-const TO_LABEL = 'Contract Account';
+const COINS_LABEL = 'Coins Account';
+const CONTRACT_LABEL = 'Contract Account';
+
+type TransferDirection = 'coins-to-contract' | 'contract-to-coins';
 
 export default function TransferPage() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const token = useAuthStore((s) => s.token);
   const [selectedCoin, setSelectedCoin] = useState('USDC');
+  const [transferDirection, setTransferDirection] = useState<TransferDirection>('coins-to-contract');
   const [balances, setBalances] = useState<Balances>(() => {
     const base: Balances = {};
     TRANSFER_COINS.forEach((c) => {
@@ -105,8 +108,8 @@ export default function TransferPage() {
               id: String(t.id),
               coin: t.asset,
               amount: t.amount,
-              from: t.fromAccount === 'coins' ? FROM_LABEL : TO_LABEL,
-              to: t.toAccount === 'coins' ? FROM_LABEL : TO_LABEL,
+              from: t.fromAccount === 'coins' ? COINS_LABEL : CONTRACT_LABEL,
+              to: t.toAccount === 'coins' ? COINS_LABEL : CONTRACT_LABEL,
               createdAt: new Date(t.createdAt).toLocaleString(),
             }));
             setRecords(formattedRecords);
@@ -122,8 +125,23 @@ export default function TransferPage() {
     fetchHistory();
   }, [isLoggedIn, token, selectedCoin]);
 
-  const fromAccount: AccountType = 'coins';
-  const toAccount: AccountType = 'contract';
+  // Determine from/to accounts based on direction
+  const fromAccount: AccountType = useMemo(() => {
+    return transferDirection === 'coins-to-contract' ? 'coins' : 'contract';
+  }, [transferDirection]);
+
+  const toAccount: AccountType = useMemo(() => {
+    return transferDirection === 'coins-to-contract' ? 'contract' : 'coins';
+  }, [transferDirection]);
+
+  // Get labels based on direction
+  const fromLabel = useMemo(() => {
+    return transferDirection === 'coins-to-contract' ? COINS_LABEL : CONTRACT_LABEL;
+  }, [transferDirection]);
+
+  const toLabel = useMemo(() => {
+    return transferDirection === 'coins-to-contract' ? CONTRACT_LABEL : COINS_LABEL;
+  }, [transferDirection]);
 
   const available = useMemo(() => {
     const b = balances[selectedCoin];
@@ -148,24 +166,36 @@ export default function TransferPage() {
         body: JSON.stringify({
           asset: selectedCoin,
           amount: amountNum,
-          fromAccount: 'coins',
-          toAccount: 'contract',
+          fromAccount,
+          toAccount,
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          // Update balances
+          // Update balances based on direction
           setBalances((prev) => {
             const current = prev[selectedCoin] ?? { coins: 0, contract: 0 };
-            return {
-              ...prev,
-              [selectedCoin]: {
-                coins: current.coins - amountNum,
-                contract: current.contract + amountNum,
-              },
-            };
+            if (fromAccount === 'coins') {
+              // Transfer from coins to contract
+              return {
+                ...prev,
+                [selectedCoin]: {
+                  coins: current.coins - amountNum,
+                  contract: current.contract + amountNum,
+                },
+              };
+            } else {
+              // Transfer from contract to coins
+              return {
+                ...prev,
+                [selectedCoin]: {
+                  coins: current.coins + amountNum,
+                  contract: current.contract - amountNum,
+                },
+              };
+            }
           });
 
           // Add to records
@@ -175,8 +205,8 @@ export default function TransferPage() {
               id: String(transfer.id),
               coin: transfer.asset,
               amount: transfer.amount,
-              from: FROM_LABEL,
-              to: TO_LABEL,
+              from: transfer.fromAccount === 'coins' ? COINS_LABEL : CONTRACT_LABEL,
+              to: transfer.toAccount === 'coins' ? COINS_LABEL : CONTRACT_LABEL,
               createdAt: new Date(transfer.createdAt).toLocaleString(),
             },
             ...prev,
@@ -200,7 +230,15 @@ export default function TransferPage() {
     <div className="min-h-screen bg-[#1f252b] text-white">
       <TransferHeader onBack={() => window.history.back()} />
 
-      <AccountBox fromLabel={FROM_LABEL} toLabel={TO_LABEL} />
+      <AccountBox 
+        fromLabel={fromLabel} 
+        toLabel={toLabel}
+        direction={transferDirection}
+        onToggleDirection={() => {
+          setTransferDirection(prev => prev === 'coins-to-contract' ? 'contract-to-coins' : 'coins-to-contract');
+          setAmount(''); // Reset amount when changing direction
+        }}
+      />
 
       <TransferAmountSection
         coin={selectedCoin}
