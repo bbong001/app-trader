@@ -49,6 +49,7 @@ export default function TradingModal({
   const [side, setSide] = useState<'buy-up' | 'buy-down'>(type);
   const [selectedDuration, setSelectedDuration] = useState<number>(30);
   const [tradingModel, setTradingModel] = useState<'USDT' | 'USDC'>('USDT');
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [quantity, setQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -70,6 +71,31 @@ export default function TradingModal({
   const isAmountValid = Number.isFinite(amount) && amount > 0;
   const profit = isAmountValid ? (amount * selectedOption.profitability) / 100 : 0;
   const payout = isAmountValid ? amount + profit : 0;
+
+  // Fetch contract balance (USDT) when modal mở
+  useEffect(() => {
+    if (!open) return;
+    if (!token) return;
+
+    const fetchBalance = async () => {
+      try {
+        const res = await fetch('/api/contract/balance', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setAvailableBalance(data.balance.available ?? 0);
+        }
+      } catch (err) {
+        console.error('Fetch contract balance error:', err);
+        setAvailableBalance(null);
+      }
+    };
+
+    fetchBalance();
+  }, [open, token]);
 
   const handleSubmit = async () => {
     if (!isAmountValid) return;
@@ -375,7 +401,9 @@ export default function TradingModal({
               {t('contract.tradingModal.fundsLabel')}
             </span>
             <span className="text-gray-400">
-              {t('contract.tradingModal.noFunds')}
+          {availableBalance === null
+            ? '...'
+            : `${availableBalance.toFixed(2)} ${tradingModel}`}
             </span>
           </div>
 
