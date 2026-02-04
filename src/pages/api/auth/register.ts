@@ -2,6 +2,7 @@ import type { APIContext } from 'astro';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../../server/prisma';
 import { Prisma } from '@prisma/client';
+import { generateUid } from '../../../utils/generateUid';
 
 export async function POST(context: APIContext): Promise<Response> {
   try {
@@ -64,14 +65,44 @@ export async function POST(context: APIContext): Promise<Response> {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Generate unique UID (6 letters + 4 numbers)
+    let uid: string;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    // Ensure UID is unique
+    while (!isUnique && attempts < maxAttempts) {
+      uid = generateUid();
+      const existingUid = await prisma.user.findUnique({
+        where: { uid },
+        select: { id: true },
+      });
+      if (!existingUid) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate unique UID. Please try again.' }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
     // Create user and initial wallet in transaction
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
           email,
           passwordHash,
+          uid: uid!,
         },
-        select: { id: true },
+        select: { id: true, uid: true },
       });
 
       await tx.wallet.create({

@@ -10,6 +10,7 @@ model User {
   id                      Int                   @id @default(autoincrement())
   email                   String                @unique
   passwordHash            String                @map("password_hash")
+  uid                     String?               @unique
   createdAt               DateTime              @default(now()) @map("created_at")
   transactionPasswordHash String?               @map("transaction_password_hash")
   banReason               String?               @map("ban_reason")

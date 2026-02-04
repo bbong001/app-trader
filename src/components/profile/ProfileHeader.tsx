@@ -1,11 +1,41 @@
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useAppTranslation } from '../../hooks/useAppTranslation';
 
 export default function ProfileHeader() {
   const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
   const email = useAuthStore((s) => s.email);
-  const userId = useAuthStore((s) => s.userId);
+  const token = useAuthStore((s) => s.token);
+  const [uid, setUid] = useState<string | null>(null);
   const { t } = useAppTranslation();
+
+  useEffect(() => {
+    if (!isLoggedIn || !token) {
+      setUid(null);
+      return;
+    }
+
+    const fetchUid = async () => {
+      try {
+        const res = await fetch('/api/auth/uid', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setUid(data.uid);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching UID:', error);
+      }
+    };
+
+    fetchUid();
+  }, [isLoggedIn, token]);
 
   return (
     <div className="bg-gray-900 px-4 py-4 flex items-center justify-between">
@@ -18,7 +48,7 @@ export default function ProfileHeader() {
             <span className="inline-block w-2 h-2 rounded-full bg-lime-400" />
           </div>
           <div className="text-gray-400 text-sm">
-            {t('profile.uidLabel')}:{userId ?? '----'}&nbsp;&nbsp;
+            {t('profile.uidLabel')}:{uid ?? '----'}&nbsp;&nbsp;
             {t('profile.creditScore', { score: 100 })}
           </div>
         </div>
