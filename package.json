@@ -13,7 +13,11 @@
     "start": "astro dev",
     "build": "npx prisma generate && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "seed": "node --loader ts-node/esm prisma/seed.ts || npx tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "node --loader ts-node/esm prisma/seed.ts || npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@astrojs/node": "^8.3.1",

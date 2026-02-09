@@ -1,0 +1,10 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import MiningProductDetail from '../../../components/finance/MiningProductDetail';
+---
+
+<Layout title="Mining Product Detail" isShowHeader={false}>
+  <div class="max-w-md mx-auto bg-gray-900 min-h-screen">
+    <MiningProductDetail productId={Astro.params.id as string} client:load />
+  </div>
+</Layout>

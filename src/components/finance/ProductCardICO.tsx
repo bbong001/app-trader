@@ -84,7 +84,12 @@ export default function ProductCardICO({
     <div className="bg-gray-800 rounded-xl p-4 mb-4 mx-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-white font-medium text-lg">{title}</h3>
+        <h3 
+          className="text-white font-medium text-lg cursor-pointer hover:text-green-400 transition"
+          onClick={() => window.location.href = `/finance/ieo/${id}`}
+        >
+          {title}
+        </h3>
         <div className="flex items-center gap-2">
           <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">
             {t('finance.ieo.statusInProgress')}

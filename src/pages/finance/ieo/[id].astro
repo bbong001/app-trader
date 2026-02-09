@@ -1,0 +1,10 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import IEOProductDetail from '../../../components/finance/IEOProductDetail';
+---
+
+<Layout title="IEO Product Detail" isShowHeader={false}>
+  <div class="max-w-md mx-auto bg-gray-900 min-h-screen">
+    <IEOProductDetail productId={Astro.params.id as string} client:load />
+  </div>
+</Layout>

@@ -48,19 +48,28 @@ export default function IEOLaunchpadTab() {
       {isLoading ? (
         <LoadingSpinner />
       ) : (
-        ieoProducts.map((product) => (
-          <ProductCardICO
-            key={product.id}
-            id={product.id}
-            title={product.title}
-            status={product.status}
-            current={product.current}
-            total={product.total}
-            remaining={product.remaining}
-            symbol={product.symbol}
-            pricePerToken={product.pricePerToken}
-          />
-        ))
+        <>
+          {ieoProducts.length > 0 ? (
+            ieoProducts.map((product) => (
+              <ProductCardICO
+                key={product.id}
+                id={product.id}
+                title={product.title}
+                status={product.status}
+                current={product.current}
+                total={product.total}
+                remaining={product.remaining}
+                symbol={product.symbol}
+                pricePerToken={product.pricePerToken}
+              />
+            ))
+          ) : (
+            <div className="text-center py-12 px-4">
+              <p className="text-gray-400 text-lg">No IEO products available at the moment</p>
+              <p className="text-gray-500 text-sm mt-2">Please check back later</p>
+            </div>
+          )}
+        </>
       )}
 
       <NoMoreSection />

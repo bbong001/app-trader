@@ -91,8 +91,13 @@ export default function ProductCardMining({
   return (
     <div className="bg-gray-800 rounded-xl p-4 mb-4 mx-4">
       {/* Header */}
-      <div className="mb-4">
-        <h3 className="text-white font-bold text-lg">{hashRate}</h3>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 
+          className="text-white font-bold text-lg cursor-pointer hover:text-green-400 transition"
+          onClick={() => window.location.href = `/finance/mining/${id}`}
+        >
+          {hashRate}
+        </h3>
       </div>
 
       {/* Content */}

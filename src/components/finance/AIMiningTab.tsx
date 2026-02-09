@@ -66,37 +66,35 @@ export default function AIMiningTab() {
       <IntroSection />
       <FeaturedProductsHeader />
 
-      {/* ICO Products */}
+      {/* Products */}
       {isLoading ? (
-          <LoadingSpinner />
+        <LoadingSpinner />
       ) : (
         <>
-          {icoProducts.map((product) => (
-            <ProductCardICO
-              key={product.id}
-              id={product.id}
-              title={product.title}
-              status={product.status}
-              current={product.current}
-              total={product.total}
-              remaining={product.remaining}
-              symbol={product.symbol}
-              pricePerToken={product.pricePerToken}
-            />
-          ))}
-
           {/* Mining Products */}
-          {miningProducts.map((product) => (
-            <ProductCardMining
-              key={product.id}
-              id={product.id}
-              hashRate={product.hashRate}
-              currency={product.currency}
-              averageDailyReturn={product.averageDailyReturn}
-              minimumPurchase={product.minimumPurchase}
-              maximumPurchase={product.maximumPurchase}
-            />
-          ))}
+          {miningProducts.length > 0 && (
+            <>
+              {miningProducts.map((product) => (
+                <ProductCardMining
+                  key={product.id}
+                  id={product.id}
+                  hashRate={product.hashRate}
+                  currency={product.currency}
+                  averageDailyReturn={product.averageDailyReturn}
+                  minimumPurchase={product.minimumPurchase}
+                  maximumPurchase={product.maximumPurchase}
+                />
+              ))}
+            </>
+          )}
+
+          {/* No products message */}
+          {!isLoading && icoProducts.length === 0 && miningProducts.length === 0 && (
+            <div className="text-center py-12 px-4">
+              <p className="text-gray-400 text-lg">No products available at the moment</p>
+              <p className="text-gray-500 text-sm mt-2">Please check back later</p>
+            </div>
+          )}
         </>
       )}
 
