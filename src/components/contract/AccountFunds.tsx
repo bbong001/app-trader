@@ -289,7 +289,6 @@ export default function AccountFunds({
               const displaySymbol = position.symbol.replace('USDT', '/USDT');
               const isBuyUp = position.side === 'BUY_UP';
               const isWin = position.result === 'WIN';
-              console.log(position)
               const handleClick = () => {
                 window.location.href = `/contract-detail?id=${position.id}`;
               };

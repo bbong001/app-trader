@@ -88,8 +88,9 @@ export async function POST(context: APIContext): Promise<Response> {
               ? currentPriceDecimal.gt(entryPrice) // BUY_UP wins if exit > entry
               : currentPriceDecimal.lt(entryPrice); // BUY_DOWN wins if exit < entry
 
+          // Win = ăn đúng số tiền đặt (profit = amount). Loss = thua hết số tiền đặt.
           const actualProfit = isWin
-            ? position.expectedProfit // Win: get expected profit
+            ? position.amount // Win: profit = amount (tổng nhận = amount + amount = 2*amount)
             : position.amount.negated(); // Loss: lose entire amount
 
           // Get user's USDT wallet
@@ -112,10 +113,9 @@ export async function POST(context: APIContext): Promise<Response> {
           const lockedAmount = position.amount;
           const newLocked = wallet.locked.sub(lockedAmount);
 
-          // If win, add profit to available balance
-          // If loss, just unlock (amount already deducted)
+          // Win: trả lại stake + profit = 2*amount. Loss: chỉ unlock, không hoàn tiền.
           const newAvailable = isWin
-            ? wallet.available.add(position.expectedPayout) // Win: get amount + profit
+            ? wallet.available.add(position.amount).add(position.amount) // Win: amount + amount
             : wallet.available; // Loss: just unlock, no refund
 
           // Update wallet

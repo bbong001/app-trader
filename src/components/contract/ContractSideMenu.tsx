@@ -14,19 +14,20 @@ interface CoinState extends CoinConfig {
   trend: Trend;
 }
 
+// Khớp với USDT_ASSETS trong AssetListTab.tsx (tab Home) - chỉ dùng các coin hợp lệ trên Binance Spot API
 const USDT_COINS: CoinConfig[] = [
   { label: 'BTC/USDT', binanceSymbol: 'BTCUSDT' },
   { label: 'ETH/USDT', binanceSymbol: 'ETHUSDT' },
   { label: 'BCH/USDT', binanceSymbol: 'BCHUSDT' },
   { label: 'LTC/USDT', binanceSymbol: 'LTCUSDT' },
   { label: 'UNI/USDT', binanceSymbol: 'UNIUSDT' },
-  { label: 'XAU/USDT', binanceSymbol: 'XAUUSDT' },
-  { label: 'FIG/USDT', binanceSymbol: 'FIGUSDT' },
-  { label: 'COMB/USDT', binanceSymbol: 'COMBUSDT' },
-  { label: 'EBUN/USDT', binanceSymbol: 'EBUNUSDT' },
-  { label: 'KXSE/USDT', binanceSymbol: 'KXSEUSDT' },
-  { label: 'ETF/USDT', binanceSymbol: 'ETFUSDT' },
-  { label: 'ALRA/USDT', binanceSymbol: 'ALRAUSDT' },
+  { label: 'XAU/USDT', binanceSymbol: 'PAXGUSDT' }, // Binance không có XAUUSDT trên Spot, dùng PAXGUSDT
+  { label: 'DOT/USDT', binanceSymbol: 'DOTUSDT' },
+  { label: 'SOL/USDT', binanceSymbol: 'SOLUSDT' },
+  { label: 'TRB/USDT', binanceSymbol: 'TRBUSDT' },
+  { label: 'TRX/USDT', binanceSymbol: 'TRXUSDT' },
+  { label: 'XRP/USDT', binanceSymbol: 'XRPUSDT' },
+  { label: 'TRUMP/USDT', binanceSymbol: 'TRUMPUSDT' },
 ];
 
 interface ContractSideMenuProps {
@@ -46,10 +47,13 @@ export default function ContractSideMenu({ open, onClose }: ContractSideMenuProp
         const initial: CoinState[] = await Promise.all(
           USDT_COINS.map(async (cfg) => {
             const ticker = await binanceAPI.getTicker(cfg.binanceSymbol);
-            const trend: Trend = ticker.changePercent >= 0 ? 'up' : 'down';
+            const changePercent = Number.isFinite(ticker.changePercent)
+              ? ticker.changePercent
+              : 0;
+            const trend: Trend = changePercent >= 0 ? 'up' : 'down';
             return {
               ...cfg,
-              changePercent: ticker.changePercent,
+              changePercent,
               trend,
             };
           })
@@ -65,12 +69,13 @@ export default function ContractSideMenu({ open, onClose }: ContractSideMenuProp
 
     const unsubscribers = USDT_COINS.map((cfg) =>
       binanceAPI.subscribeTicker(cfg.binanceSymbol, (_price, changePercent) => {
-        const trend: Trend = changePercent >= 0 ? 'up' : 'down';
+        const value = Number.isFinite(changePercent) ? changePercent : 0;
+        const trend: Trend = value >= 0 ? 'up' : 'down';
         setCoins((prev) => {
           const exists = prev.find((c) => c.binanceSymbol === cfg.binanceSymbol);
           if (!exists) return prev;
           return prev.map((c) =>
-            c.binanceSymbol === cfg.binanceSymbol ? { ...c, changePercent, trend } : c
+            c.binanceSymbol === cfg.binanceSymbol ? { ...c, changePercent: value, trend } : c
           );
         });
       })
@@ -87,6 +92,7 @@ export default function ContractSideMenu({ open, onClose }: ContractSideMenuProp
     useContractStore.getState().setSymbol(symbol);
     onClose();
   };
+
 
   return (
     <div className={`fixed inset-0 z-40 ${open ? '' : 'pointer-events-none'}`}>
@@ -143,8 +149,9 @@ export default function ContractSideMenu({ open, onClose }: ContractSideMenuProp
                     </svg>
                   )}
                   <span>
-                    {coin.changePercent >= 0 ? '+' : ''}
-                    {coin.changePercent.toFixed(2)}%
+                    {Number.isFinite(coin.changePercent)
+                      ? `${coin.changePercent >= 0 ? '+' : ''}${coin.changePercent.toFixed(2)}%`
+                      : '--'}
                   </span>
                 </div>
               </button>

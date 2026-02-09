@@ -46,17 +46,23 @@ export class BinanceAPI {
   async getTicker(symbol: string): Promise<{ price: number; changePercent: number }> {
     try {
       const response = await fetch(`${BinanceAPI.baseUrl}/ticker/24hr?symbol=${symbol}`);
-      const data: TickerData = await response.json();
+      const data = await response.json();
+
+      // Binance lỗi trả về { code: number, msg: string } thay vì TickerData
+      if (!response.ok || data.code != null) {
+        console.warn('Binance ticker error for', symbol, data.msg ?? data);
+        return { price: Number.NaN, changePercent: Number.NaN };
+      }
+
+      const price = parseFloat(data.price);
+      const changePercent = parseFloat(data.priceChangePercent ?? '0');
 
       return {
-        price: parseFloat(data.price),
-        changePercent: parseFloat(data.priceChangePercent),
+        price: Number.isFinite(price) ? price : Number.NaN,
+        changePercent: Number.isFinite(changePercent) ? changePercent : Number.NaN,
       };
     } catch (error) {
       console.error('Error fetching ticker:', error);
-      // IMPORTANT:
-      // Không trả về giá mock cố định vì sẽ làm UI hiển thị giá sai thực tế (vd: 88,843.50).
-      // Khi lỗi, trả về NaN để UI hiểu là dữ liệu không hợp lệ và hiển thị skeleton thay vì giá giả.
       return {
         price: Number.NaN,
         changePercent: Number.NaN,
