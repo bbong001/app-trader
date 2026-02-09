@@ -28,7 +28,7 @@ interface PendingOrderSummary {
 }
 
 const DURATION_OPTIONS: DurationOption[] = [
-  { seconds: 30, profitability: 20 },
+  // Đã bỏ option 30s theo yêu cầu, bắt đầu từ 60s
   { seconds: 60, profitability: 25 },
   { seconds: 90, profitability: 35 },
   { seconds: 120, profitability: 45 },
@@ -47,7 +47,8 @@ export default function TradingModal({
   currentPrice,
 }: TradingModalProps) {
   const [side, setSide] = useState<'buy-up' | 'buy-down'>(type);
-  const [selectedDuration, setSelectedDuration] = useState<number>(30);
+  // Mặc định chọn 60s (đã xoá lựa chọn 30s)
+  const [selectedDuration, setSelectedDuration] = useState<number>(60);
   const [tradingModel, setTradingModel] = useState<'USDT' | 'USDC'>('USDT');
   const [availableBalance, setAvailableBalance] = useState<number | null>(null);
   const [quantity, setQuantity] = useState('');

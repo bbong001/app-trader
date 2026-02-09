@@ -1,7 +1,6 @@
 import ServiceHeader from './ServiceHeader';
 import ConversationBanner from './ConversationBanner';
 import ChatWindow from './ChatWindow';
-import EmailPromptCard from './EmailPromptCard';
 
 export default function ServicePage() {
   return (
@@ -11,10 +10,9 @@ export default function ServicePage() {
       <div className="flex-1 flex flex-col">
         <ConversationBanner />
 
-        {/* Chat area + email card */}
+        {/* Chat area */}
         <div className="flex-1 flex flex-col mt-2">
           <ChatWindow />
-          <EmailPromptCard />
         </div>
       </div>
     </div>

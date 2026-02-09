@@ -363,3 +363,14 @@ model DepositAddress {
   @@index([asset, network, isActive])
   @@map("deposit_addresses")
 }
+
+// ContractSessionControl: Control next contract sessions result (WIN/LOSS queue)
+model ContractSessionControl {
+  id        Int      @id @default(autoincrement())
+  final     String
+  required  Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("contract_session_controls")
+}
+
