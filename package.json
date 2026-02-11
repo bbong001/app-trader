@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "astro dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run socket\"",
-    "socket": "node socket-server.js",
+    "socket": "node socket-server/index.js",
     "start": "astro dev",
     "build": "npx prisma generate && astro build",
     "preview": "astro preview",

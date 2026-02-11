@@ -28,14 +28,14 @@ interface PendingOrderSummary {
 }
 
 const DURATION_OPTIONS: DurationOption[] = [
-  // Đã bỏ option 30s theo yêu cầu, bắt đầu từ 60s
+  { seconds: 30, profitability: 25 },
   { seconds: 60, profitability: 25 },
   { seconds: 90, profitability: 35 },
   { seconds: 120, profitability: 45 },
   { seconds: 180, profitability: 60 },
   { seconds: 360, profitability: 70 },
   { seconds: 420, profitability: 75 },
-  { seconds: 510, profitability: 80 },
+  { seconds: 540, profitability: 80 },
   { seconds: 620, profitability: 90 },
 ];
 
@@ -57,6 +57,7 @@ export default function TradingModal({
   const [pendingOrder, setPendingOrder] = useState<PendingOrderSummary | null>(null);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [isCountingDown, setIsCountingDown] = useState(false);
+  const [hasOpenPosition, setHasOpenPosition] = useState(false);
   const { t } = useAppTranslation();
   const token = useAuthStore((state) => state.token);
 
@@ -73,7 +74,7 @@ export default function TradingModal({
   const profit = isAmountValid ? (amount * selectedOption.profitability) / 100 : 0;
   const payout = isAmountValid ? amount + profit : 0;
 
-  // Fetch contract balance (USDT) when modal mở
+  // Fetch contract balance (USDT) and check open positions when modal mở
   useEffect(() => {
     if (!open) return;
     if (!token) return;
@@ -95,7 +96,25 @@ export default function TradingModal({
       }
     };
 
+    const checkOpenPositions = async () => {
+      try {
+        const res = await fetch('/api/contract/positions?status=OPEN', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setHasOpenPosition(data.positions && data.positions.length > 0);
+        }
+      } catch (err) {
+        console.error('Check open positions error:', err);
+        setHasOpenPosition(false);
+      }
+    };
+
     fetchBalance();
+    checkOpenPositions();
   }, [open, token]);
 
   const handleSubmit = async () => {
@@ -150,6 +169,8 @@ export default function TradingModal({
           expectedProfit: position.expectedProfit,
           expectedPayout: position.expectedPayout,
         });
+        // Đánh dấu đã có position đang chạy
+        setHasOpenPosition(true);
       }
 
       // Reset input số lượng để lần sau đặt mới
@@ -174,10 +195,11 @@ export default function TradingModal({
       setCountdownSeconds((prev) => {
         if (prev === null) return prev;
         if (prev <= 1) {
-          // Kết thúc countdown
+          // Kết thúc countdown - position đã đóng
           window.clearInterval(timerId);
           setIsCountingDown(false);
           setPendingOrder(null);
+          setHasOpenPosition(false); // Reset để có thể đặt lệnh mới
           onClose();
           return 0;
         }
@@ -436,10 +458,10 @@ export default function TradingModal({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={!isAmountValid || isSubmitting || isCountingDown}
+            disabled={!isAmountValid || isSubmitting || isCountingDown || hasOpenPosition}
             className={`w-full text-gray-900 font-semibold py-4 rounded-lg transition ${
               side === 'buy-up' ? 'bg-emerald-400' : 'bg-red-400'
-            } ${!isAmountValid || isSubmitting || isCountingDown ? 'opacity-60 pointer-events-none' : ''}`}
+            } ${!isAmountValid || isSubmitting || isCountingDown || hasOpenPosition ? 'opacity-60 pointer-events-none' : ''}`}
           >
             {isSubmitting
               ? 'Submitting...'
@@ -447,6 +469,13 @@ export default function TradingModal({
               ? t('contract.tradingModal.submitBuy')
               : t('contract.tradingModal.submitSell')}
           </button>
+
+          {/* Warning message when has open position */}
+          {hasOpenPosition && (
+            <div className="mt-3 text-sm text-yellow-400 text-center">
+              Bạn đang có lệnh đang chạy, vui lòng đợi lệnh kết thúc trước khi đặt lệnh mới
+            </div>
+          )}
 
           {/* Inline error message */}
           {submitError && (

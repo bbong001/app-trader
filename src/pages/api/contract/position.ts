@@ -77,6 +77,26 @@ export async function POST(context: APIContext): Promise<Response> {
       );
     }
 
+    // Kiểm tra xem user có position đang OPEN không
+    const existingOpenPosition = await prisma.contractPosition.findFirst({
+      where: {
+        userId,
+        status: 'OPEN',
+      },
+    });
+
+    if (existingOpenPosition) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Bạn đang có lệnh đang chạy, vui lòng đợi lệnh kết thúc trước khi đặt lệnh mới' 
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Calculate expected profit and payout
     const amountDecimal = new Prisma.Decimal(amount);
     const profitabilityDecimal = new Prisma.Decimal(profitability);
@@ -101,18 +121,18 @@ export async function POST(context: APIContext): Promise<Response> {
         });
       }
 
-      // Check balance
+      // Check balance: chỉ kiểm tra available (không dùng locked nữa)
       const available = new Prisma.Decimal(wallet.available);
+      
       if (available.lt(amountDecimal)) {
         throw new Error('Insufficient balance');
       }
 
-      // Lock amount
+      // Trừ trực tiếp từ available (không lock)
       await tx.wallet.update({
         where: { id: wallet.id },
         data: {
           available: wallet.available.sub(amountDecimal),
-          locked: wallet.locked.add(amountDecimal),
         },
       });
 

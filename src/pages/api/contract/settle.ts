@@ -101,9 +101,17 @@ export async function POST(context: APIContext): Promise<Response> {
               : currentPriceDecimal.lt(entryPrice); // BUY_DOWN wins if exit < entry
         }
 
+        // Tính profit theo profitability và trừ 1% fee
+        const profitability = position.profitability || new Prisma.Decimal(0);
+        const profitPercentage = profitability.div(100);
+        const profitBeforeFee = position.amount.mul(profitPercentage);
+        const fee = profitBeforeFee.mul(0.01); // 1% fee từ profit
+        const netProfit = profitBeforeFee.sub(fee);
+        
+        // actualProfit: WIN = netProfit (profit sau fee), LOSS = -profitBeforeFee - fee (thua đi profit và fee)
         const actualProfit = isWin
-          ? position.expectedProfit // Win: get expected profit
-          : position.amount.negated(); // Loss: lose entire amount
+          ? netProfit // Win: chỉ profit sau fee
+          : profitBeforeFee.add(fee).negated(); // Loss: thua đi profitBeforeFee + fee
 
         // Get user's USDT wallet
         let wallet = await tx.wallet.findUnique({
@@ -121,22 +129,17 @@ export async function POST(context: APIContext): Promise<Response> {
           });
         }
 
-        // Unlock the locked amount
-        const lockedAmount = position.amount;
-        const newLocked = wallet.locked.sub(lockedAmount);
-
-        // If win, add profit to available balance
-        // If loss, just unlock (amount already deducted)
+        // Win: cộng lại amount/2 + netProfit vào available (vì đã trừ amount khi đặt lệnh)
+        // Loss: cộng lại (amount - profitBeforeFee - fee) vào available (vì đã trừ amount khi đặt lệnh)
         const newAvailable = isWin
-          ? wallet.available.add(position.expectedPayout) // Win: get amount + profit
-          : wallet.available; // Loss: just unlock, no refund
+          ? wallet.available.add(position.amount.div(2)).add(netProfit) // Win: cộng lại amount/2 + netProfit
+          : wallet.available.add(position.amount.sub(profitBeforeFee).sub(fee)); // Loss: cộng lại (amount - profitBeforeFee - fee)
 
-        // Update wallet
+        // Update wallet (chỉ update available, không dùng locked nữa)
         await tx.wallet.update({
           where: { id: wallet.id },
           data: {
             available: newAvailable,
-            locked: newLocked,
           },
         });
 
