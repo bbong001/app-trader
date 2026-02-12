@@ -142,7 +142,7 @@ export default function VerifyForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="px-4 pb-24 bg-gray-900">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="px-4 pb-24 bg-gray-900">
       <InputField
         label={t('verify.form.nameLabel')}
         name="name"
@@ -154,6 +154,7 @@ export default function VerifyForm() {
       <InputField
         label={t('verify.form.idNumberLabel')}
         name="idNumber"
+        type="text"
         placeholder={t('verify.form.idNumberPlaceholder')}
         register={register as any}
         error={errors.idNumber as any}
