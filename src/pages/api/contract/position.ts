@@ -160,6 +160,51 @@ export async function POST(context: APIContext): Promise<Response> {
       return position;
     });
 
+    // Notify socket-server about new contract position (fire-and-forget)
+    // Note: socket.connected will be false right after io() because connection is async.
+    try {
+      const { io } = await import('socket.io-client');
+      const socketServerUrl = process.env.SOCKET_SERVER_URL || process.env.PUBLIC_SOCKET_URL || 'http://localhost:3000';
+
+      const socket = io(socketServerUrl, {
+        // Allow polling fallback (websocket-only can fail in some environments)
+        transports: ['websocket', 'polling'],
+        reconnection: false,
+        timeout: 5000,
+        forceNew: true,
+      });
+
+      socket.on('connect', () => {
+        console.log('[contract-position] connected to socket-server:', socket.id);
+
+        socket.emit('contract:new-position-internal', {
+          positionId: result.id,
+          userId: result.userId,
+          symbol: result.symbol,
+          side: result.side,
+          amount: Number(result.amount),
+          createdAt: result.createdAt,
+        });
+
+        // Give it a moment to flush the emit, then disconnect
+        setTimeout(() => {
+          socket.disconnect();
+        }, 300);
+      });
+
+      socket.on('connect_error', (e: any) => {
+        console.error('[contract-position] socket connect_error:', e?.message || e);
+        socket.disconnect();
+      });
+
+      socket.on('error', (e: any) => {
+        console.error('[contract-position] socket error:', e?.message || e);
+        socket.disconnect();
+      });
+    } catch (err) {
+      console.error('Socket notification error:', err);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
