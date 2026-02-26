@@ -2,6 +2,7 @@ import type { APIContext } from 'astro';
 import { requireAuth } from '../../../server/auth';
 import { prisma } from '../../../server/prisma';
 import { Prisma } from '@prisma/client';
+import { SOCKET_SERVER_URL, PUBLIC_SOCKET_URL } from '@config.env';
 
 /**
  * POST /api/contract/position - Tạo contract position mới
@@ -164,7 +165,8 @@ export async function POST(context: APIContext): Promise<Response> {
     // Note: socket.connected will be false right after io() because connection is async.
     try {
       const { io } = await import('socket.io-client');
-      const socketServerUrl = process.env.SOCKET_SERVER_URL || process.env.PUBLIC_SOCKET_URL || 'http://localhost:3000';
+      const socketServerUrl =
+        SOCKET_SERVER_URL || PUBLIC_SOCKET_URL || 'http://localhost:3000';
 
       const socket = io(socketServerUrl, {
         // Allow polling fallback (websocket-only can fail in some environments)

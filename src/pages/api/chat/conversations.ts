@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { prisma } from '../../../server/prisma';
 import { requireAuth } from '../../../server/auth';
+import { NODE_ENV } from '@config.env';
 
 export const GET: APIRoute = async (context) => {
   try {
@@ -58,9 +59,9 @@ export const GET: APIRoute = async (context) => {
   } catch (error: any) {
     console.error('Error in GET /api/chat/conversations:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message || 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        details: NODE_ENV === 'development' ? error.stack : undefined,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
@@ -116,9 +117,9 @@ export const POST: APIRoute = async (context) => {
   } catch (error: any) {
     console.error('Error in POST /api/chat/conversations:', error);
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: error.message || 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        details: NODE_ENV === 'development' ? error.stack : undefined,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

@@ -1,9 +1,10 @@
 import { Pool } from 'pg';
+import { DATABASE_URL } from '@config.env';
 
-let connectionString = import.meta.env.DATABASE_URL;
+let connectionString = DATABASE_URL;
 
 if (!connectionString) {
-  // Avoid hardcoding secrets in source. Set DATABASE_URL in `.env`.
+  // Avoid hardcoding secrets in source. Set DATABASE_URL in env config.
   throw new Error('Missing DATABASE_URL env var');
 }
 

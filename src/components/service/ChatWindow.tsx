@@ -5,6 +5,7 @@ import { useAppTranslation } from '../../hooks/useAppTranslation';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import { compressImage } from '../../utils/imageCompression';
 import { useAuthStore } from '../../stores/authStore';
+import { NODE_ENV, PUBLIC_SOCKET_URL } from '@config.env';
 
 interface Message {
   id: number;
@@ -57,10 +58,10 @@ export default function ChatWindow() {
   useEffect(() => {
     if (!isLoggedIn || !userId) return;
 
-    // Use environment variable for socket URL, fallback to localhost for development
-    const socketUrl = import.meta.env.PUBLIC_SOCKET_URL || 
-      (process.env.NODE_ENV === 'production' 
-        ? 'https://app-trader.railway.internal' 
+    // Use centralized environment config for socket URL, fallback to localhost for development
+    const socketUrl = PUBLIC_SOCKET_URL ||
+      (NODE_ENV === 'production'
+        ? 'https://app-trader.railway.internal'
         : 'http://localhost:3000');
     
     const newSocket = io(socketUrl, {
@@ -441,6 +442,29 @@ export default function ChatWindow() {
     }
   };
 
+  // Persist message to database via REST API (in addition to socket for realtime)
+  const persistMessage = async (content: string | null, imageUrl: string | null) => {
+    if (!conversationId || !token) return;
+
+    try {
+      await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          conversationId,
+          senderType: 'user',
+          content,
+          imageUrl,
+        }),
+      });
+    } catch (error) {
+      console.error('Error persisting chat message:', error);
+    }
+  };
+
   const handleSend = async () => {
     const trimmed = input.trim();
     if (!trimmed || !conversationId || !socket) return;
@@ -459,6 +483,9 @@ export default function ChatWindow() {
         content: trimmed,
         imageUrl: null,
       });
+
+      // Persist to database
+      persistMessage(trimmed, null);
 
       setInput('');
     } catch (error) {
@@ -485,34 +512,43 @@ export default function ChatWindow() {
     setUploading(true);
 
     try {
-      // Compress image before upload
-      const compressedFile = await compressImage(file, 500); // Max 500KB
+      // Compress image before upload (preserve existing behaviour)
+      const compressedFile = await compressImage(file, 500); // Max ~500KB
       console.log(`Image compressed: ${file.size / 1024}KB -> ${compressedFile.size / 1024}KB`);
 
-      const formData = new FormData();
-      formData.append('image', compressedFile);
+      // Upload trực tiếp lên Cloudinary
+      const cloudinaryFormData = new FormData();
+      cloudinaryFormData.append('file', compressedFile);
+      cloudinaryFormData.append('upload_preset', 'glory365');
+      cloudinaryFormData.append('folder', 'api-glory365');
 
-      const response = await fetch('/api/chat/upload-image', {
+      const response = await fetch('https://api.cloudinary.com/v1_1/dbsy0kyh5/image/upload', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
+        body: cloudinaryFormData,
       });
 
       const data = await response.json();
 
-      if (data.data?.imageUrl) {
-        socket.emit('send-message', {
-          conversationId,
-          senderId: userId,
-          senderType: 'user',
-          content: null,
-          imageUrl: data.data.imageUrl,
-        });
+      if (!response.ok || !data.secure_url) {
+        console.error('Cloudinary upload failed:', data);
+        throw new Error(data.error?.message || data.message || 'Upload failed');
       }
+
+      const imageUrl = data.secure_url as string;
+
+      // Gửi message qua socket với imageUrl Cloudinary để server realtime
+      socket.emit('send-message', {
+        conversationId,
+        senderId: userId,
+        senderType: 'user',
+        content: null,
+        imageUrl,
+      });
+
+      // Persist image message to database
+      persistMessage(null, imageUrl);
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error uploading image to Cloudinary:', error);
       alert('Failed to upload image');
     } finally {
       setUploading(false);
